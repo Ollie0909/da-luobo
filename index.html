@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff8a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>打蘿蔔</title>
+<link rel="icon" href="assets/heads/normal-1.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --carrot: #ff8a2a;
+    --carrot-dark: #e0661a;
+    --carrot-light: #ffb36b;
+    --leaf: #4caf50;
+    --leaf-dark: #2f8a3a;
+    --grass: #8fd65a;
+    --grass-dark: #6bbd3f;
+    --soil: #9b6535;
+    --soil-dark: #6b3e1f;
+    --ink: #4a2a12;
+    --cream: #fff6e8;
+    --gold: #ffd23f;
+    --gw: min(94vw, 440px, calc((100vh - 140px) * 0.8));
+  }
+  @supports (height: 100dvh) {
+    :root { --gw: min(94vw, 440px, calc((100dvh - 140px) * 0.8)); }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    position: fixed; inset: 0; width: 100%;
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      repeating-linear-gradient(100deg, transparent 0 34px, rgba(255,255,255,.07) 34px 68px),
+      linear-gradient(#bfe9ff 0, #dff4ff 90px, var(--grass) 90px, var(--grass-dark) 100%);
+  }
+  img { -webkit-user-drag: none; pointer-events: none; }
+  button { font-family: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+
+  /* ---------- 共用：描邊大字 ---------- */
+  .outline {
+    paint-order: stroke fill;
+    -webkit-text-stroke: 6px var(--ink);
+    text-shadow: 0 5px 0 var(--ink);
+  }
+  .btn {
+    border: 0; border-radius: 999px;
+    background: var(--carrot); color: #fff;
+    font-size: 26px; font-weight: 900; letter-spacing: 2px;
+    padding: 14px 44px;
+    box-shadow: 0 6px 0 var(--carrot-dark), 0 10px 18px rgba(74,42,18,.25);
+    transition: transform .06s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--carrot-dark); }
+  .btn.green { background: var(--leaf); box-shadow: 0 6px 0 var(--leaf-dark), 0 10px 18px rgba(74,42,18,.25); }
+  .btn.small { font-size: 18px; padding: 10px 26px; }
+  .icon-btn {
+    position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px; z-index: 30;
+    width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--ink);
+    background: #fff; font-size: 18px; line-height: 1; padding: 0;
+  }
+
+  /* ---------- 畫面切換 ---------- */
+  .screen {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column; align-items: center;
+    padding: calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .screen.on { display: flex; }
+
+  /* ---------- 開始畫面 ---------- */
+  #start { justify-content: center; gap: 10px; overflow-y: auto; touch-action: pan-y; }
+  .hero { position: relative; width: 132px; height: 160px; margin-top: 6px; flex: none; }
+  .hero .char { animation: heroBounce 1.1s ease-in-out infinite alternate; }
+  @keyframes heroBounce { from { transform: translate(-50%, 0) rotate(-5deg); } to { transform: translate(-50%, -8px) rotate(5deg); } }
+  h1 {
+    margin: 0; font-size: clamp(60px, 19vw, 84px); line-height: 1.05; font-weight: 900;
+    color: var(--carrot); letter-spacing: 4px;
+  }
+  .sub { margin: 0; font-size: 15px; font-weight: 700; text-align: center; line-height: 1.5; }
+  .legend {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px;
+    width: min(100%, 360px);
+    background: rgba(255,246,232,.9); border: 3px solid var(--ink); border-radius: 18px;
+    padding: 8px 8px 6px;
+  }
+  .legend .item { display: flex; flex-direction: column; align-items: center; font-size: 12px; font-weight: 900; line-height: 1.25; text-align: center; }
+  .legend .pts { color: var(--carrot-dark); font-size: 14px; }
+  .legend .rare .pts { color: #c48a00; }
+  .mini { position: relative; width: 58px; height: 64px; overflow: hidden; }
+  .mini .char { transform: translate(-50%, 0) !important; }
+  .mini .t-horse { width: 112%; }
+  .best { font-size: 15px; font-weight: 900; }
+
+  /* ---------- 遊戲畫面 ---------- */
+  #game { padding-left: 0; padding-right: 0; touch-action: none; }
+  .hud {
+    width: var(--gw); display: flex; gap: 8px; align-items: stretch; justify-content: space-between;
+    padding-right: 48px;
+  }
+  .pill {
+    flex: 1; background: #fff; border: 3px solid var(--ink); border-radius: 14px;
+    padding: 2px 6px 3px; text-align: center; min-width: 0;
+  }
+  .pill small { display: block; font-size: 11px; font-weight: 700; opacity: .7; line-height: 1.3; }
+  .pill b { display: block; font-size: 22px; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill.combo b { color: var(--carrot-dark); }
+  .pill.combo.hot { background: var(--gold); }
+  .timebar {
+    width: var(--gw); height: 12px; margin-top: 8px;
+    border: 3px solid var(--ink); border-radius: 99px; background: #fff; overflow: hidden;
+  }
+  .timebar i { display: block; height: 100%; width: 100%; background: var(--carrot); transform-origin: left; }
+  .timebar.low i { background: #e94b3c; }
+  .field { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 0; }
+  .grid {
+    position: relative;
+    width: var(--gw);
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    column-gap: calc(var(--gw) * .03); row-gap: calc(var(--gw) * .09);
+    margin-top: calc(var(--gw) * .2);
+  }
+  .cell { position: relative; aspect-ratio: 1 / .9; }
+  .hole-back, .hole-front {
+    position: absolute; left: 4%; right: 4%; bottom: 8%; height: 40%;
+    border-radius: 50%;
+  }
+  .hole-back {
+    background: var(--soil);
+    box-shadow: 0 6px 0 rgba(74,42,18,.18);
+  }
+  .hole-back::before {
+    content: ""; position: absolute; inset: 14% 12% 18%; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 70%, #2a1408 40%, #4a2812 100%);
+  }
+  .hole-front {
+    clip-path: inset(50% -2% -2% -2%);
+    background: linear-gradient(var(--soil) 0 55%, var(--soil-dark));
+  }
+  .hole-front::before {
+    /* 洞口下緣的草 */
+    content: ""; position: absolute; left: 8%; right: 8%; bottom: -8%; height: 30%;
+    background: radial-gradient(circle at 10% 100%, var(--grass-dark) 40%, transparent 42%) 0 0 / 22% 100% repeat-x;
+  }
+  .pop {
+    position: absolute; left: -25%; right: -25%; bottom: 28%; height: 270%;
+    overflow: hidden; pointer-events: none;
+  }
+
+  /* ---------- 角色 ---------- */
+  .char {
+    position: absolute; left: 50%; bottom: 0;
+    width: 70%; aspect-ratio: 100 / 130;
+    transform: translate(-50%, 104%);
+    transition: transform .2s ease-in;
+    pointer-events: none;
+  }
+  .char.up {
+    transform: translate(-50%, 10%);
+    transition: transform .16s cubic-bezier(.2, .9, .3, 1.25);
+    pointer-events: auto;
+  }
+  .char.hit { pointer-events: none; }
+  .wiggle { position: absolute; inset: 0; transform-origin: 50% 100%; }
+  .char svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .head {
+    position: absolute; left: var(--hx); top: var(--hy); width: var(--hw); height: var(--hh);
+    object-fit: contain; object-position: 50% 100%;
+    filter: drop-shadow(0 2px 0 rgba(74,42,18,.35));
+  }
+  .t-mole   { --hx: 14%; --hy: 2%;  --hw: 72%; --hh: 54%; }
+  .t-carrot { --hx: 12%; --hy: 9%;  --hw: 76%; --hh: 55%; }
+  .t-twerk  { --hx: 2%;  --hy: 8%;  --hw: 70%; --hh: 54%; }
+  .t-horse  { --hx: -2%; --hy: 0%;  --hw: 50%; --hh: 62%; width: 76%; aspect-ratio: 130 / 110; }
+  .t-real   { width: 76%; aspect-ratio: .62; }
+  .t-real .body-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
+  .char.up.t-horse { transition-duration: .1s; }
+  .char.up.t-real { transform: translate(-50%, 4%); }
+
+  .t-mole .wiggle   { animation: bob .9s ease-in-out infinite alternate; }
+  .t-carrot .wiggle { animation: tilt .8s ease-in-out infinite alternate; }
+  .t-horse .wiggle  { animation: trot .22s ease-in-out infinite alternate; }
+  .t-twerk .wiggle  { animation: sway .6s ease-in-out infinite alternate; }
+  .t-real .wiggle   { animation: tilt 1.1s ease-in-out infinite alternate; }
+  .t-twerk .butt    { transform-origin: 46px 92px; animation: twerk .26s ease-in-out infinite alternate; }
+  .t-twerk .motion  { animation: blink .26s steps(2) infinite; }
+  @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-3%); } }
+  @keyframes tilt  { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+  @keyframes trot  { from { transform: translateY(0) rotate(-1.5deg); } to { transform: translateY(-4%) rotate(1.5deg); } }
+  @keyframes sway  { from { transform: rotate(-5deg); } to { transform: rotate(6deg); } }
+  @keyframes twerk { from { transform: rotate(-16deg) translateX(-2px); } to { transform: rotate(18deg) translateX(3px); } }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .rare .wiggle { filter: drop-shadow(0 0 5px rgba(255,210,63,.95)); }
+  .tag {
+    position: absolute; left: 50%; top: -14%; transform: translateX(-50%);
+    background: var(--gold); border: 2px solid var(--ink); border-radius: 99px;
+    padding: 0 7px; font-size: 11px; font-weight: 900; white-space: nowrap;
+    animation: tagPulse .4s ease-in-out infinite alternate;
+  }
+  @keyframes tagPulse { to { transform: translateX(-50%) scale(1.12); } }
+
+  .char.hit .wiggle { animation: ouch .42s ease-out forwards; }
+  .char.hit .butt, .char.hit .motion { animation-play-state: paused; }
+  .char.hit .tag { display: none; }
+  .char.hit::after {
+    content: "💫"; position: absolute; left: 50%; top: -6%; font-size: 22px;
+    animation: dizzy .5s linear infinite;
+  }
+  @keyframes ouch {
+    0%   { transform: scale(1); }
+    18%  { transform: scale(1.16, .8) rotate(-7deg); }
+    38%  { transform: scale(.9, 1.12) rotate(7deg); }
+    58%  { transform: scale(1.05, .95) rotate(-4deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes dizzy { from { transform: translateX(-50%) rotate(0); } to { transform: translateX(-50%) rotate(360deg); } }
+
+  /* ---------- 特效 ---------- */
+  .fx { position: fixed; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
+  .float {
+    position: absolute; transform: translate(-50%, -50%);
+    text-align: center; font-weight: 900; white-space: nowrap;
+    color: #fff; font-size: 22px; line-height: 1.1;
+    paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink);
+    animation: floatUp .85s ease-out forwards;
+  }
+  .float .p { display: block; color: var(--gold); font-size: 26px; }
+  .float.big { font-size: 26px; }
+  @keyframes floatUp {
+    0%   { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
+    15%  { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+    70%  { opacity: 1; transform: translate(-50%, -110%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -140%) scale(.95); }
+  }
+  .mallet {
+    position: absolute; width: 84px; height: 84px; margin: -26px 0 0 -26px;
+    transform-origin: 78px 78px;
+    animation: whack .26s ease-out forwards;
+  }
+  @keyframes whack {
+    0%   { transform: rotate(45deg); opacity: 1; }
+    45%  { transform: rotate(-10deg); }
+    65%  { transform: rotate(0); opacity: 1; }
+    100% { transform: rotate(0); opacity: 0; }
+  }
+  .burst {
+    position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%;
+    border: 5px solid var(--gold);
+    animation: burst .35s ease-out forwards;
+  }
+  @keyframes burst { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
+  .banner {
+    position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+    font-size: 44px; font-weight: 900; color: var(--gold); white-space: nowrap;
+    paint-order: stroke fill; -webkit-text-stroke: 8px var(--ink);
+    animation: banner .9s ease-out forwards;
+  }
+  @keyframes banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-8deg); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(3deg); }
+    75%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+  }
+  .countdown {
+    position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+    font-size: 110px; font-weight: 900; color: #fff;
+    paint-order: stroke fill; -webkit-text-stroke: 10px var(--ink);
+    animation: count .6s ease-out forwards;
+  }
+  .countdown.go { font-size: 80px; color: var(--carrot); }
+  @keyframes count { from { opacity: 0; transform: translate(-50%, -50%) scale(2); } 30% { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -50%) scale(.8); } }
+
+  /* ---------- 結束畫面 ---------- */
+  #end { justify-content: center; background: rgba(74,42,18,.45); z-index: 25; touch-action: pan-y; overflow-y: auto; }
+  .card {
+    width: min(100%, 360px); background: var(--cream); border: 4px solid var(--ink); border-radius: 26px;
+    padding: 18px 18px 22px; text-align: center; position: relative;
+    box-shadow: 0 10px 0 rgba(74,42,18,.35);
+    animation: cardIn .45s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes cardIn { from { transform: translateY(40px) scale(.8); opacity: 0; } }
+  .card h2 { margin: 0; font-size: 34px; font-weight: 900; color: var(--carrot); }
+  .end-head { width: 92px; height: 92px; object-fit: contain; display: block; margin: 6px auto 0; animation: tilt .5s ease-in-out infinite alternate; }
+  .score-big { font-size: 64px; font-weight: 900; line-height: 1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .score-big small { font-size: 22px; }
+  .record { display: inline-block; background: var(--gold); border: 3px solid var(--ink); border-radius: 99px; padding: 1px 12px; font-weight: 900; font-size: 15px; animation: pulse .5s ease-in-out infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.1); } }
+  .stats { display: flex; justify-content: space-around; margin: 12px 0 10px; font-size: 12px; font-weight: 700; }
+  .stats b { display: block; font-size: 22px; font-weight: 900; }
+  .comment { font-weight: 900; font-size: 16px; margin: 0 0 16px; }
+  .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- 開始畫面 -->
+<section id="start" class="screen on">
+  <div class="hero" id="hero"></div>
+  <h1 class="outline">打蘿蔔</h1>
+  <p class="sub">蘿蔔又跑出來偷吃胡蘿蔔了！<br>60 秒內把他通通打回洞裡</p>
+  <div class="legend" id="legend"></div>
+  <div class="best">🏆 最高分：<span id="bestStart">0</span></div>
+  <button class="btn" id="startBtn">開始！</button>
+</section>
+
+<!-- 遊戲畫面 -->
+<section id="game" class="screen">
+  <div class="hud">
+    <div class="pill"><small>分數</small><b id="score">0</b></div>
+    <div class="pill"><small>時間</small><b id="time">60</b></div>
+    <div class="pill combo" id="comboPill"><small>連擊</small><b id="combo">0</b></div>
+  </div>
+  <div class="timebar" id="timebar"><i id="timefill"></i></div>
+  <div class="field"><div class="grid" id="grid"></div></div>
+</section>
+
+<!-- 結束畫面 -->
+<section id="end" class="screen">
+  <div class="card">
+    <h2 class="outline" style="-webkit-text-stroke-width:5px">時間到！</h2>
+    <img class="end-head" id="endHead" src="assets/heads/hit-1.png" alt="">
+    <div class="score-big"><span id="finalScore">0</span><small> 分</small></div>
+    <div id="recordWrap"><span class="record">🎉 新紀錄！</span></div>
+    <div id="bestWrap" class="best">🏆 最高分：<span id="bestEnd">0</span></div>
+    <div class="stats">
+      <div><b id="statHits">0</b>打中</div>
+      <div><b id="statCombo">0</b>最高連擊</div>
+      <div><b id="statMiss">0</b>讓他跑掉</div>
+    </div>
+    <p class="comment" id="comment"></p>
+    <div class="row">
+      <button class="btn" id="againBtn">再打一次</button>
+      <button class="btn green small" id="homeBtn">回首頁</button>
+    </div>
+  </div>
+</section>
+
+<button class="icon-btn" id="muteBtn" aria-label="音效開關">🔊</button>
+<div class="fx" id="fx"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- 素材 ----------
+  const HEADS = {
+    normal: ['assets/heads/normal-1.png', 'assets/heads/normal-2.png', 'assets/heads/normal-3.png', 'assets/heads/normal-4.png'],
+    hit: ['assets/heads/hit-1.png', 'assets/heads/hit-2.png'],
+  };
+  const BODIES = [
+    { src: 'assets/bodies/barefoot.png', tag: '赤腳上台' },
+    { src: 'assets/bodies/squat.png', tag: '路邊蹲蹲' },
+    { src: 'assets/bodies/bridge.png', tag: '橋上emo' },
+  ];
+
+  const LEAVES = `
+    <g class="leaves">
+      <path d="M50 26 C40 14 30 0 34 -12 C44 -6 50 8 50 26Z" fill="#4caf50"/>
+      <path d="M50 26 C48 10 52 -6 60 -14 C66 -2 58 14 50 26Z" fill="#5cc45f"/>
+      <path d="M50 26 C56 14 68 4 78 6 C76 16 64 24 50 26Z" fill="#3e9e45"/>
+      <path d="M50 26 C42 18 28 14 22 18 C26 26 40 28 50 26Z" fill="#43a647"/>
+    </g>`;
+
+  const SVG = {
+    mole: {
+      back: `<svg viewBox="0 0 100 130">
+        <path d="M14 130 C10 92 24 60 50 58 C76 60 90 92 86 130Z" fill="#8a5634"/>
+        <path d="M30 130 C28 104 36 88 50 87 C64 88 72 104 70 130Z" fill="#e9c39b"/>
+      </svg>`,
+      front: `<svg viewBox="0 0 100 130">
+        <g transform="rotate(-28 50 100)">
+          <path d="M44 90 Q50 87 56 90 L51 118 Q50 120 49 118Z" fill="#ff8a2a"/>
+          <path d="M47 99 h4 M49 107 h3" stroke="#e0661a" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M48 90 q-4 -7 -8 -9 M50 90 q0 -8 1 -12 M52 90 q4 -6 8 -8" stroke="#3fa34d" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+        </g>
+        <ellipse cx="38" cy="99" rx="8" ry="6.5" fill="#f5a9a0"/>
+        <ellipse cx="62" cy="99" rx="8" ry="6.5" fill="#f5a9a0"/>
+        <path d="M34 103 v2 M38 104 v2 M42 103 v2 M58 103 v2 M62 104 v2 M66 103 v2" stroke="#c97a70" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>`,
+    },
+    carrot: {
+      back: `<svg viewBox="0 0 100 130">
+        ${LEAVES}
+        <path d="M24 78 Q12 82 10 94" stroke="#f47c1c" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M76 78 Q88 82 90 94" stroke="#f47c1c" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M20 72 C20 60 80 60 80 72 C80 94 62 118 50 132 C38 118 20 94 20 72Z" fill="#ff8a2a"/>
+        <path d="M28 86 q6 2 11 0 M60 94 q6 2 11 -1 M36 106 q5 2 9 0 M54 114 q4 1 7 -1" stroke="#e0661a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      </svg>`,
+    },
+    twerk: {
+      back: `<svg viewBox="0 0 100 130">
+        <g transform="translate(-12 0)">${LEAVES}</g>
+        <path d="M64 72 Q80 64 84 48" stroke="#f47c1c" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <circle cx="85" cy="45" r="4.5" fill="#f47c1c"/>
+        <path d="M26 74 Q12 82 24 94" stroke="#f47c1c" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M30 92 C34 108 40 120 44 132 C50 120 56 108 60 94Z" fill="#ff8a2a"/>
+        <path d="M40 106 q4 2 8 0 M43 118 q3 1 5 0" stroke="#e0661a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M20 74 C20 62 64 60 66 70 C68 82 64 90 58 95 L34 97 C27 91 20 86 20 74Z" fill="#ff8a2a"/>
+        <g class="butt">
+          <circle cx="60" cy="98" r="13" fill="#ff9a3c"/>
+          <circle cx="73" cy="97" r="13" fill="#ff8a2a"/>
+          <path d="M66.5 89 q-2 9 0 17" stroke="#e0661a" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="76" cy="91" rx="4" ry="2.5" fill="#ffc48a"/>
+          <ellipse cx="57" cy="92" rx="3.5" ry="2" fill="#ffc48a"/>
+        </g>
+        <path class="motion" d="M91 88 q5 7 0 14 M97 84 q7 11 0 22" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>`,
+    },
+    horse: {
+      back: `<svg viewBox="0 0 130 110">
+        <path d="M114 60 C130 58 132 80 124 94 C121 82 117 73 110 70Z" fill="#ff8a2a"/>
+        <g fill="#d9a066">
+          <rect x="58" y="76" width="10" height="28" rx="5"/><rect x="73" y="80" width="10" height="24" rx="5"/>
+          <rect x="94" y="80" width="10" height="24" rx="5"/><rect x="106" y="76" width="10" height="28" rx="5"/>
+        </g>
+        <g fill="#6b3e1f">
+          <rect x="58" y="100" width="10" height="7" rx="2.5"/><rect x="73" y="100" width="10" height="7" rx="2.5"/>
+          <rect x="94" y="100" width="10" height="7" rx="2.5"/><rect x="106" y="100" width="10" height="7" rx="2.5"/>
+        </g>
+        <path d="M34 50 C44 44 60 50 66 58 L60 76 C50 72 40 66 32 62Z" fill="#e8b27a"/>
+        <ellipse cx="88" cy="66" rx="33" ry="20" fill="#e8b27a"/>
+        <ellipse cx="102" cy="70" rx="7" ry="4.5" fill="#fff" opacity=".55"/>
+        <ellipse cx="80" cy="76" rx="5" ry="3" fill="#fff" opacity=".45"/>
+        <path d="M42 18 C56 24 64 40 68 58 C62 52 56 48 50 46Z" fill="#ff8a2a"/>
+        <path d="M76 48 C84 43 98 43 104 48 L102 58 C94 55 84 55 78 58Z" fill="#4caf50"/>
+        <path d="M78 58 L80 66 M102 58 L100 66" stroke="#2f8a3a" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>`,
+    },
+  };
+
+  const TYPES = {
+    mole:   { name: '蘿蔔地鼠', pts: 1, weight: 52, life: 1,    from: 0 },
+    carrot: { name: '胡蘿蔔人', pts: 2, weight: 26, life: 1,    from: 0 },
+    horse:  { name: '人面馬',   pts: 3, weight: 13, life: .58,  from: 4000 },
+    real:   { name: '蘿蔔本尊', pts: 4, weight: 4.5, life: .8,  from: 10000, rare: true },
+    twerk:  { name: '翹臀胡蘿蔔', pts: 5, weight: 4.5, life: .85, from: 8000, rare: true },
+  };
+
+  const OUCH = {
+    mole:   ['啊！', '嗚嗚', '痛痛痛', '幹嘛啦', '我的頭！', '蛤？'],
+    carrot: ['我不是胡蘿蔔！', '嗚嗚', '啊！', '葉子歪了', '別吃我'],
+    horse:  ['嘶～！', '馬的！', '啊！', '馬上走'],
+    twerk:  ['我的翹臀！', '屁屁！', '啊～♥', '扭不動了'],
+    real:   ['被抓包！', '本尊在此', '嗚嗚', '蛤？'],
+  };
+
+  const GAME_MS = 60000;
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const $ = id => document.getElementById(id);
+
+  // ---------- 儲存（隱私模式可能會丟錯） ----------
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch { return fallback; }
+    },
+    set(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* 忽略 */ }
+    },
+  };
+
+  // ---------- 音效（Web Audio 合成） ----------
+  const Sound = {
+    ctx: null, master: null, noiseBuf: null,
+    muted: store.get('daluobo-muted', false),
+    init() {
+      try {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          this.ctx = new AC();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = .6;
+          this.master.connect(this.ctx.destination);
+          const len = this.ctx.sampleRate * .4;
+          this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+          const d = this.noiseBuf.getChannelData(0);
+          for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      } catch { this.ctx = null; }
+    },
+    ok() { return this.ctx && !this.muted; },
+    tone(freq, to, dur, type = 'sine', vol = .2, delay = 0) {
+      if (!this.ok()) return;
+      const c = this.ctx, t0 = c.currentTime + delay;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+      g.gain.setValueAtTime(.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + .008);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      o.connect(g).connect(this.master);
+      o.start(t0); o.stop(t0 + dur + .03);
+    },
+    noise(dur, vol, freq, delay = 0) {
+      if (!this.ok()) return;
+      const c = this.ctx, t0 = c.currentTime + delay;
+      const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = this.noiseBuf;
+      f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2;
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      s.connect(f).connect(g).connect(this.master);
+      s.start(t0); s.stop(t0 + dur + .02);
+    },
+    wobble(freq, dur, vol = .12) {
+      if (!this.ok()) return;
+      const c = this.ctx, t0 = c.currentTime;
+      const o = c.createOscillator(), lfo = c.createOscillator(), depth = c.createGain(), g = c.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      lfo.frequency.value = 16; depth.gain.value = freq * .25;
+      lfo.connect(depth).connect(o.frequency);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      o.connect(g).connect(this.master);
+      o.start(t0); lfo.start(t0); o.stop(t0 + dur); lfo.stop(t0 + dur);
+    },
+    pop()  { this.tone(260, 620, .09, 'sine', .07); },
+    hit(combo) {
+      const f = Math.min(380 + combo * 22, 900);
+      this.tone(f, f * .35, .14, 'square', .14);
+      this.noise(.07, .35, 1800);
+    },
+    whiff() { this.noise(.09, .08, 700); },
+    rare()  { [880, 1175, 1568].forEach((f, i) => this.tone(f, null, .09, 'triangle', .1, i * .06)); },
+    twerk() { this.wobble(330, .45); },
+    broke() { this.tone(330, 140, .25, 'sawtooth', .06); },
+    combo() { [660, 880, 1320].forEach((f, i) => this.tone(f, null, .08, 'square', .07, i * .05)); },
+    beep(final) { this.tone(final ? 990 : 620, null, final ? .3 : .14, 'square', .1); },
+    end()   { [523, 659, 784, 1046].forEach((f, i) => this.tone(f, null, .16, 'triangle', .14, i * .12)); },
+  };
+
+  const vibrate = pattern => {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch { /* 不支援就略過 */ }
+  };
+
+  // ---------- 角色 DOM ----------
+  function buildChar(type, opts = {}) {
+    const el = document.createElement('div');
+    el.className = `char t-${type}` + (TYPES[type].rare ? ' rare' : '');
+    const w = document.createElement('div');
+    w.className = 'wiggle';
+    if (type === 'real') {
+      const body = opts.body || BODIES[0];
+      w.innerHTML = `<img class="body-photo" alt="" draggable="false" src="${body.src}">`;
+      el.dataset.tag = body.tag;
+    } else {
+      const s = SVG[type];
+      w.innerHTML = s.back + `<img class="head" alt="" draggable="false" src="${opts.head || HEADS.normal[0]}">` + (s.front || '');
+    }
+    el.append(w);
+    if (opts.tag) {
+      const t = document.createElement('div');
+      t.className = 'tag';
+      t.textContent = opts.tag;
+      el.append(t);
+    }
+    return el;
+  }
+
+  // 開始畫面：主角與角色圖鑑
+  (function buildStart() {
+    const hero = buildChar('carrot', { head: HEADS.normal[0] });
+    hero.style.width = '100%';
+    $('hero').append(hero);
+    const order = ['mole', 'carrot', 'horse', 'twerk', 'real'];
+    const legend = $('legend');
+    order.forEach((type, i) => {
+      const item = document.createElement('div');
+      item.className = 'item' + (TYPES[type].rare ? ' rare' : '');
+      const mini = document.createElement('div');
+      mini.className = 'mini';
+      mini.append(buildChar(type, { head: HEADS.normal[i % HEADS.normal.length], body: BODIES[0] }));
+      item.append(mini);
+      item.insertAdjacentHTML('beforeend',
+        `<div>${TYPES[type].name}${TYPES[type].rare ? ' ✨' : ''}</div><div class="pts">+${TYPES[type].pts}</div>`);
+      legend.append(item);
+    });
+    const tip = document.createElement('div');
+    tip.className = 'item';
+    tip.style.justifyContent = 'center';
+    tip.innerHTML = '<div style="font-size:22px">🔥</div><div>連續打中<br>分數加倍</div><div class="pts">漏掉就斷</div>';
+    legend.append(tip);
+  })();
+
+  // ---------- 遊戲狀態 ----------
+  const grid = $('grid');
+  const holes = [];
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.i = i;
+    cell.innerHTML = '<div class="hole-back"></div><div class="pop"></div><div class="hole-front"></div>';
+    grid.append(cell);
+    holes.push({ cell, pop: cell.querySelector('.pop'), char: null, type: null, hit: false, leaving: false, downAt: 0, hideAt: 0, freeAt: 0 });
+  }
+
+  let state = 'start';      // start | countdown | play | end
+  let t = 0, nextSpawn = 0, lastHole = -1;
+  let score = 0, combo = 0, maxCombo = 0, hits = 0, misses = 0, shownSec = -1;
+  let best = Number(store.get('daluobo-best', 0)) || 0;
+
+  const ui = {
+    score: $('score'), time: $('time'), combo: $('combo'), comboPill: $('comboPill'),
+    timebar: $('timebar'), timefill: $('timefill'), fx: $('fx'),
+  };
+
+  function show(id) {
+    for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === id || (id === 'end' && s.id === 'game'));
+  }
+
+  function mult() { return Math.min(3, 1 + Math.floor(combo / 5) * .5); }
+
+  function renderHud() {
+    ui.score.textContent = score;
+    ui.combo.textContent = combo >= 5 ? `${combo} ×${mult()}` : combo;
+    ui.comboPill.classList.toggle('hot', combo >= 5);
+  }
+
+  function chooseType() {
+    const rareOnScreen = holes.some(h => h.char && TYPES[h.type].rare);
+    const pool = Object.entries(TYPES).filter(([, d]) => t >= d.from && !(d.rare && rareOnScreen));
+    let r = Math.random() * pool.reduce((s, [, d]) => s + d.weight, 0);
+    for (const [type, d] of pool) { if ((r -= d.weight) <= 0) return type; }
+    return 'mole';
+  }
+
+  function spawn() {
+    const p = t / GAME_MS;
+    const maxActive = p < .2 ? 2 : p < .55 ? 3 : 4;
+    const free = holes.map((h, i) => i).filter(i => !holes[i].char);
+    const active = holes.length - free.length;
+    if (active >= maxActive || !free.length) { nextSpawn = t + 90; return; }
+    const choices = free.length > 1 ? free.filter(i => i !== lastHole) : free;
+    const idx = pick(choices);
+    lastHole = idx;
+    const h = holes[idx];
+    const type = chooseType();
+    const def = TYPES[type];
+    const body = pick(BODIES);
+    const tag = def.rare ? (type === 'real' ? `${body.tag} +${def.pts}` : `稀有 +${def.pts}`) : '';
+    const el = buildChar(type, { head: pick(HEADS.normal), body, tag });
+    h.pop.append(el);
+    void el.offsetWidth;          // 先排版再加 class，才會有升起動畫
+    el.classList.add('up');
+    Object.assign(h, { char: el, type, hit: false, leaving: false, downAt: t + lerp(1250, 640, p) * def.life * (.9 + Math.random() * .25) });
+    if (type === 'twerk') Sound.twerk();
+    else if (def.rare) Sound.rare();
+    else Sound.pop();
+    nextSpawn = t + lerp(820, 340, Math.pow(p, .85)) * (.75 + Math.random() * .5);
+  }
+
+  function hide(h, delay = 0) {
+    h.leaving = true;
+    h.freeAt = t + delay + 260;
+    if (delay) h.hideAt = t + delay;
+    else h.char.classList.remove('up');
+  }
+
+  function clearHole(h) {
+    h.char.remove();
+    Object.assign(h, { char: null, type: null, hit: false, leaving: false, hideAt: 0 });
+  }
+
+  function escape(h) {
+    if (combo >= 3) Sound.broke();
+    combo = 0;
+    misses++;
+    renderHud();
+    hide(h);
+  }
+
+  function whack(h) {
+    if (!h.char || h.hit || h.leaving) { Sound.whiff(); return false; }
+    const def = TYPES[h.type];
+    h.hit = true;
+    combo++; hits++;
+    maxCombo = Math.max(maxCombo, combo);
+    const m = mult();
+    const gained = Math.round(def.pts * m);
+    score += gained;
+    const head = h.char.querySelector('.head');
+    if (head) head.src = pick(HEADS.hit);
+    h.char.classList.add('hit');
+    hide(h, 420);
+    Sound.hit(combo);
+    vibrate(def.rare ? [35, 40, 35] : 28);
+    const r = h.cell.getBoundingClientRect();
+    floatText(r.left + r.width / 2, r.top + r.height * .05,
+      pick(OUCH[h.type]), `+${gained}` + (m > 1 ? ` ×${m}` : ''), def.rare);
+    if (combo % 5 === 0) {
+      banner(`${combo} 連擊！`);
+      Sound.combo();
+    }
+    renderHud();
+    return true;
+  }
+
+  // ---------- 特效 ----------
+  function fxEl(cls, x, y, html, ms) {
+    const el = document.createElement('div');
+    el.className = cls;
+    if (x != null) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+    if (html) el.innerHTML = html;
+    ui.fx.append(el);
+    setTimeout(() => el.remove(), ms);
+    return el;
+  }
+  function floatText(x, y, word, pts, big) {
+    fxEl('float' + (big ? ' big' : ''), x, y, `${word}<span class="p">${pts}</span>`, 900);
+  }
+  function banner(text) { fxEl('banner', null, null, text, 950); }
+
+  const MALLET = `<svg class="" viewBox="0 0 84 84" width="84" height="84">
+    <rect x="30" y="30" width="9" height="56" rx="4" transform="rotate(-45 34 58)" fill="#a8703c" stroke="#4a2a12" stroke-width="3"/>
+    <g transform="rotate(-45 26 26)">
+      <rect x="6" y="12" width="40" height="28" rx="9" fill="#ff8a2a" stroke="#4a2a12" stroke-width="3.5"/>
+      <rect x="16" y="12" width="5" height="28" fill="#e0661a"/><rect x="31" y="12" width="5" height="28" fill="#e0661a"/>
+    </g>
+  </svg>`;
+  function mallet(x, y, hit) {
+    fxEl('mallet', x, y, MALLET, 300);
+    if (hit) fxEl('burst', x, y, '', 380);
+  }
+
+  // ---------- 主迴圈 ----------
+  let lastFrame = performance.now();
+  function frame(now) {
+    const dt = Math.min(now - lastFrame, 100);   // 切到背景再回來不會一次快轉
+    lastFrame = now;
+    if (state === 'play') update(dt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function update(dt) {
+    t += dt;
+    const left = Math.max(0, GAME_MS - t);
+    ui.timefill.style.transform = `scaleX(${left / GAME_MS})`;
+    const sec = Math.ceil(left / 1000);
+    if (sec !== shownSec) {
+      shownSec = sec;
+      ui.time.textContent = sec;
+      ui.timebar.classList.toggle('low', sec <= 10);
+      if (sec <= 5 && sec > 0) Sound.beep(false);
+    }
+    for (const h of holes) {
+      if (!h.char) continue;
+      if (h.leaving) {
+        if (h.hideAt && t >= h.hideAt) { h.char.classList.remove('up'); h.hideAt = 0; }
+        if (t >= h.freeAt) clearHole(h);
+      } else if (!h.hit && t >= h.downAt) {
+        escape(h);
+      }
+    }
+    if (t >= nextSpawn && t < GAME_MS - 500) spawn();
+    if (t >= GAME_MS) endGame();
+  }
+
+  // ---------- 流程 ----------
+  function resetGame() {
+    for (const h of holes) if (h.char) clearHole(h);
+    t = 0; nextSpawn = 300; lastHole = -1;
+    score = 0; combo = 0; maxCombo = 0; hits = 0; misses = 0; shownSec = -1;
+    ui.timefill.style.transform = 'scaleX(1)';
+    ui.time.textContent = 60;
+    ui.timebar.classList.remove('low');
+    renderHud();
+  }
+
+  function startGame() {
+    Sound.init();
+    resetGame();
+    show('game');
+    state = 'countdown';
+    const steps = ['3', '2', '1', '開打！'];
+    steps.forEach((s, i) => setTimeout(() => {
+      const el = fxEl('countdown' + (i === 3 ? ' go' : ''), null, null, s, 650);
+      el.textContent = s;
+      Sound.beep(i === 3);
+      if (i === 3) { state = 'play'; lastFrame = performance.now(); }
+    }, i * 600));
+  }
+
+  function comment(s) {
+    if (s < 40) return '蘿蔔：就這？我還沒吃飽欸 🥕';
+    if (s < 100) return '還行，蘿蔔頭有點腫了';
+    if (s < 180) return '蘿蔔哭著回家吃胡蘿蔔了 😭';
+    if (s < 300) return '蘿蔔已經被打成蘿蔔糕';
+    return '蘿蔔泥達成！你是打蘿蔔之神 🏆';
+  }
+
+  function endGame() {
+    state = 'end';
+    for (const h of holes) if (h.char && !h.leaving) hide(h);
+    setTimeout(() => { for (const h of holes) if (h.char) clearHole(h); }, 300);
+    const isRecord = score > best;
+    if (isRecord) { best = score; store.set('daluobo-best', best); }
+    $('finalScore').textContent = score;
+    $('bestEnd').textContent = best;
+    $('bestStart').textContent = best;
+    $('recordWrap').style.display = isRecord && score > 0 ? '' : 'none';
+    $('statHits').textContent = hits;
+    $('statCombo').textContent = maxCombo;
+    $('statMiss').textContent = misses;
+    $('comment').textContent = comment(score);
+    $('endHead').src = isRecord ? HEADS.hit[1] : HEADS.hit[0];
+    banner('時間到！');
+    Sound.end();
+    vibrate([60, 60, 120]);
+    setTimeout(() => show('end'), 900);
+  }
+
+  // ---------- 輸入：pointerdown 即時反應 ----------
+  $('game').addEventListener('pointerdown', e => {
+    if (state !== 'play') return;
+    e.preventDefault();
+    const charEl = e.target.closest('.char');
+    let h = charEl ? holes.find(x => x.char === charEl) : null;
+    if (!h) {
+      const cell = e.target.closest('.cell');
+      if (cell) h = holes[cell.dataset.i];
+    }
+    const hit = h ? whack(h) : (Sound.whiff(), false);
+    mallet(e.clientX, e.clientY, hit);
+  });
+
+  const press = (el, fn) => el.addEventListener('click', e => { e.preventDefault(); fn(); });
+  press($('startBtn'), startGame);
+  press($('againBtn'), startGame);
+  press($('homeBtn'), () => { state = 'start'; show('start'); });
+
+  const muteBtn = $('muteBtn');
+  const renderMute = () => { muteBtn.textContent = Sound.muted ? '🔇' : '🔊'; };
+  press(muteBtn, () => { Sound.muted = !Sound.muted; store.set('daluobo-muted', Sound.muted); Sound.init(); renderMute(); });
+  renderMute();
+  $('bestStart').textContent = best;
+
+  // 禁止雙指縮放、雙擊放大、長按選單
+  ['gesturestart', 'gesturechange', 'dblclick', 'contextmenu'].forEach(ev =>
+    document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => {
+    if (state === 'play' || state === 'countdown' || e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 300 && !e.target.closest('button')) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  // 預載圖片，避免第一次冒出來時閃一下
+  [...HEADS.normal, ...HEADS.hit, ...BODIES.map(b => b.src)].forEach(src => { const i = new Image(); i.src = src; });
+
+  // 截圖檢查用：?demo=play 直接排好角色、?demo=end 顯示結算
+  const demo = new URLSearchParams(location.search).get('demo');
+  if (demo === 'play') {
+    show('game');
+    ['mole', 'carrot', 'horse', 'twerk', 'real', 'mole', null, 'carrot', null].forEach((type, i) => {
+      if (!type) return;
+      const def = TYPES[type];
+      const el = buildChar(type, { head: HEADS.normal[i % 4], body: BODIES[i % 3], tag: def.rare ? `稀有 +${def.pts}` : '' });
+      el.classList.add('up');
+      if (i === 5) { el.classList.add('hit'); el.querySelector('.head').src = HEADS.hit[0]; }
+      holes[i].pop.append(el);
+    });
+    score = 42; combo = 7; renderHud();
+  } else if (demo === 'end') {
+    score = 88; hits = 51; maxCombo = 17; misses = 9;
+    endGame();
+  }
+})();
+</script>
+</body>
+</html>
